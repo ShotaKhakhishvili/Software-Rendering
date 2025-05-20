@@ -72,24 +72,29 @@ bool srEngine::OnUserUpdate(float deltaTime)
 
 		vec3 normal, line1, line2;
 
+		// Line 1
 		line1.x = triTranslated.p[1].x - triTranslated.p[0].x;
 		line1.y = triTranslated.p[1].y - triTranslated.p[0].y;
 		line1.z = triTranslated.p[1].z - triTranslated.p[0].z;
 
+		// Line 2
 		line2.x = triTranslated.p[2].x - triTranslated.p[0].x;
 		line2.y = triTranslated.p[2].y - triTranslated.p[0].y;
 		line2.z = triTranslated.p[2].z - triTranslated.p[0].z;
 
+		// Cross product which gives us the normal of the triangle
 		normal.x = line1.y * line2.z - line1.z * line2.y;
 		normal.y = line1.z * line2.x - line1.x * line2.z;
 		normal.z = line1.x * line2.y - line1.y * line2.x;
 
-		float l = sqrtf(normal.x * normal.x + normal.y * normal.y + normal.z + normal.z);
+		// Normalizing the normal
+		float l = sqrtl(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
 		
 		normal.x /= l;
 		normal.y /= l;
 		normal.z /= l;
 
+		// Calculating the triangle visibility based on the camera look direction
 		vec3 lookDirection;
 		
 		lookDirection.x = triTranslated.p[0].x - vCamera.x;
@@ -103,9 +108,29 @@ bool srEngine::OnUserUpdate(float deltaTime)
 			continue;
 		}
 
+		// Calculating the luminosity
+
+		vec3 lightDir = vec3{ 0.0f, 0.0f, -1.0f };
+		float lightLen = sqrtf(lightDir.x * lightDir.x + lightDir.y * lightDir.y + lightDir.z * lightDir.z);
+
+		lightDir.x /= lightLen;
+		lightDir.y /= lightLen;
+		lightDir.z /= lightLen;
+
+		float reflection = normal.x * lightDir.x + normal.y * lightDir.y + normal.z * lightDir.z;
+
+		CHAR_INFO c = GetColour(reflection);
+
+		triTranslated.col = c.Attributes;
+		triTranslated.sym = c.Char.UnicodeChar;
+
+		// Projecting triangles from 3D -> 2D
 		MultiplyMatrixVector(triTranslated.p[0], triProjected.p[0], mat_proj);
 		MultiplyMatrixVector(triTranslated.p[1], triProjected.p[1], mat_proj);
 		MultiplyMatrixVector(triTranslated.p[2], triProjected.p[2], mat_proj);
+		triProjected.col = triTranslated.col;
+		triProjected.sym = triTranslated.sym;
+
 
 		// Scaling to the view
 		triProjected.p[0].x += 1.0f; triProjected.p[0].y += 1.0f;
@@ -119,16 +144,11 @@ bool srEngine::OnUserUpdate(float deltaTime)
 		triProjected.p[2].x *= 0.5f * static_cast<float>(ScreenWidth());
 		triProjected.p[2].y *= 0.5f * static_cast<float>(ScreenHeight());
 
-		FillTriangle(triProjected.p[0].x, triProjected.p[0].y,
-			triProjected.p[1].x, triProjected.p[1].y,
-			triProjected.p[2].x, triProjected.p[2].y,
-			PIXEL_SOLID, FG_WHITE);
 
-		DrawTriangle(triProjected.p[0].x, triProjected.p[0].y,
-			triProjected.p[1].x, triProjected.p[1].y,
-			triProjected.p[2].x, triProjected.p[2].y,
-			PIXEL_SOLID, FG_CYAN);
-
+		FillTriangle(	triProjected.p[0].x, triProjected.p[0].y, 
+						triProjected.p[1].x, triProjected.p[1].y, 
+						triProjected.p[2].x, triProjected.p[2].y,
+						triProjected.sym, triProjected.col);
 	}
 
 	return true;
@@ -137,6 +157,8 @@ bool srEngine::OnUserUpdate(float deltaTime)
 int main()
 {
 	srEngine test("object.txt");
+
+	//while(1) test.OnUserUpdate(0.05);
 
 	if (test.ConstructConsole(512, 480, 2, 2))
 		test.Start();

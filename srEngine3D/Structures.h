@@ -1,7 +1,5 @@
 #pragma once
 
-// std
-
 #define PI 3.141592653
 
 struct vec3
@@ -12,6 +10,9 @@ struct vec3
 struct triangle
 {
 	vec3 p[3];
+
+	wchar_t sym;
+	short col;
 };
 
 struct mesh
